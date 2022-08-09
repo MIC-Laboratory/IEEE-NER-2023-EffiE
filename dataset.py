@@ -23,7 +23,7 @@ def folder_extract(root_dir, exercises=["E2"], myo_pref="elbow"):
         2. exercises (1D list, optional):
             Exercises with dedicated gestures stored. Defaults to "E2".
             - Note:
-                "E3" may match to file: Ninapro_DB5\s2\S2_E3_A1.mats
+                "E3" may match to file: Ninapro_DB5\s2\S2_E3_A1.mat
                 "E2" may match to file: Ninapro_DB5\s2\S2_E2_A1.mat
                 "E1" may match to file: Ninapro_DB5\s2\S2_E1_A1.mat
             - Example:
@@ -45,8 +45,9 @@ def folder_extract(root_dir, exercises=["E2"], myo_pref="elbow"):
             - Targets/labels collected from "stimulus" column within each .mat files wihtin the folder 'root_dir'(from args)
             - Shape: [num samples]
     """
+    
     emg = []
-    label = []
+    emg_label = []
     
     # Parse through sub folders underneath 'root_dir'(from args)
     for folder in os.listdir(root_dir):
@@ -69,10 +70,37 @@ def folder_extract(root_dir, exercises=["E2"], myo_pref="elbow"):
                 else:
                     emg += mat["emg"]
                 
-                # Collect corresponding labels
-                label.extend(mat["stimulus"].reshape(-1))
+                current_exercise = file.split("_")[1]
+                
+                if current_exercise == "E2":
+                    labels = mat["stimulus"].reshape(-1)
+                    new_labels = []
+                    
+                    for label in labels:
+                        if label != 0:
+                            new_labels.append(label + 12)
+                        else:
+                            new_labels.append(0)
+                    
+                    emg_label.extend(new_labels)
+                
+                elif current_exercise == "E3":
+                    labels = mat["stimulus"].reshape(-1)
+                    new_labels = []
+                    
+                    for label in labels:
+                        if label != 0:
+                            new_labels.append(label + 29)
+                        else:
+                            new_labels.append(0)
+                    
+                    emg_label.extend(new_labels)
+                
+                else:
+                    # Collect corresponding labels
+                    emg_label.extend(mat["stimulus"].reshape(-1))
     
-    return np.array(emg), np.array(label)
+    return np.array(emg), np.array(emg_label)
 
 
 def standarization(emg, save_path=None):
@@ -170,7 +198,6 @@ def gestures(emg, label, targets=[0, 1, 3, 6],
         assert rand_seed != None
     
     gestures = {label:[] for label in targets}
-    
     # Sort each sEMG array to the corresponding gesture/label
     for idx, emg_array in enumerate(emg):
         if label[idx] in gestures:
@@ -280,7 +307,7 @@ def train_test_split(gestures, split_size=0.25, rand_seed=2022):
     return train_gestures, test_gestures
     
     
-def apply_window(gestures, window=52, step=5):
+def apply_window(gestures, window=32, step=16):
     """
     Purpose:
         Convert sEMG signal samples to sEMG image format.
@@ -348,7 +375,7 @@ def apply_window(gestures, window=52, step=5):
     return signals, outputs
 
 
-def realtime_preprocessing(emg, params_path=None, num_classes=4):
+def realtime_preprocessing(emg, params_path=None, num_classes=4, window=32, step=16):
     """
     Purpose:
         Preprocess data samples obtained from realtime.py
@@ -405,6 +432,6 @@ def realtime_preprocessing(emg, params_path=None, num_classes=4):
         gesture[curr_gest] = sEMG[i:i+gest_size]
         curr_gest += 1
     
-    inputs, outputs = apply_window(gesture, 52)
+    inputs, outputs = apply_window(gesture, window, step)
     
     return inputs, outputs

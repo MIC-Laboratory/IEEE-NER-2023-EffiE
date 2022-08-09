@@ -3,13 +3,16 @@
     Author: Jimmy L. @ SF State MIC Lab
     Date: Summer 2022
 """
+from tabnanny import verbose
 import tensorflow as tf
 import numpy as np
 from matplotlib import pyplot as plt
 tf.get_logger().setLevel('INFO')
 
 
-def get_model(num_classes=4, filters=[32, 64], neurons=[512, 128], dropout=0.5):
+def get_model(num_classes=4, filters=[32, 64], neurons=None, dropout=0.5,
+              kernel_size=(5, 3), input_shape=(52, 8, 1), pool_size=(3, 1)):
+    assert len(filters) == 2
     """
     Purpose:
         Establish the architecture for the finetune-base A.I. model.
@@ -22,10 +25,16 @@ def get_model(num_classes=4, filters=[32, 64], neurons=[512, 128], dropout=0.5):
             A list specifying number of output filters for the first and second 2D CNN. Defaults to [32, 64].
             
         3. neurons (1D list, optional):
-            A list specifying number of neurons for the first and second neural network. Defaults to [512, 128].
+            A list specifying number of neurons for the first and second neural network. Defaults to None.
             
         4. dropout (float, optional):
             Dropout rate. Defaults to 0.5.
+        
+        5. kernel_size (tuple):
+            kernel window size for CNN. Defaults to (3, 5)
+        
+        6. input_shape (tuple):
+            Input shape for CNN. Defaults to (8, 52, 1) channel LAST
 
     Returns:
         1. model (keras.engine.sequential.Sequential):
@@ -38,38 +47,52 @@ def get_model(num_classes=4, filters=[32, 64], neurons=[512, 128], dropout=0.5):
                 - 8 refers to number of Myo armband sensors/channels (vertical width)
                 - 52 refers to window size, how many samples included per sensor/channel (horizontal length)
     """
-    model = tf.keras.Sequential([
-        tf.keras.layers.Conv2D(
+
+    CNN1 = tf.keras.layers.Conv2D(
             filters=filters[0],
             strides=1,
-            kernel_size=(3, 5), # 3x5 window
+            kernel_size=kernel_size, # 3x5 window
             activation='relu',
-            input_shape=(1, 8, 52),
-            data_format="channels_first"
-        ),
+            input_shape=input_shape
+        )
+    CNN2 = tf.keras.layers.Conv2D(
+        filters=filters[1],
+        strides=1,
+        kernel_size=kernel_size, # 3x5 window
+        activation='relu'
+    )
+
+    model = tf.keras.Sequential([
+        # """
+        # First CNN Feature Extraction Block
+        # """
+        CNN1,
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.PReLU(),
-        tf.keras.layers.SpatialDropout2D(rate=dropout, data_format='channels_first'),
-        tf.keras.layers.MaxPool2D(pool_size=(1, 3), data_format='channels_first'),
-        tf.keras.layers.Conv2D(
-            filters=filters[1],
-            strides=1,
-            kernel_size=(3, 5), # 3x5 window
-            activation='relu',
-            data_format="channels_first"
-        ),
+        tf.keras.layers.SpatialDropout2D(rate=dropout),
+        tf.keras.layers.MaxPool2D(pool_size=pool_size),
+        # """
+        # Second CNN Feature Extraction Block
+        # """
+        CNN2,
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.PReLU(),
-        tf.keras.layers.SpatialDropout2D(rate=dropout, data_format='channels_first'),
-        tf.keras.layers.MaxPool2D(pool_size=(1, 3), data_format='channels_first'),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(neurons[0]),
-        tf.keras.layers.PReLU(),
-        tf.keras.layers.Dense(neurons[1]),
-        tf.keras.layers.PReLU(),
-        tf.keras.layers.Dense(num_classes),
-        tf.keras.layers.Softmax(axis=-1)
+        tf.keras.layers.SpatialDropout2D(rate=dropout),
+        tf.keras.layers.MaxPool2D(pool_size=pool_size),
+        
+        tf.keras.layers.Flatten()
     ])
+    if neurons != None:
+        for ffn_size in neurons:
+            model.add(tf.keras.layers.Dense(ffn_size))
+            model.add(tf.keras.layers.PReLU())
+            
+    # """
+    # Last Forward Neural Network (Classifier Block)
+    # """
+    model.add(tf.keras.layers.Dense(num_classes))
+    model.add(tf.keras.layers.Softmax(axis=-1))
+    
     return model
 
 
@@ -91,7 +114,7 @@ def create_finetune(base_model, num_classes=4):
             - The new finetune model with majority architecture derived from the 'base_model'(from args)
             - The finetune model takes inputs of shape:
                     
-                    [batch_size, 1, 8, 52]
+                    [batch_size, 8, 52, 1]
                     
                 - batch_size is batch_size
                 - 1 refers to input channels. (like 3 from RGB images)
@@ -107,6 +130,26 @@ def create_finetune(base_model, num_classes=4):
     new_model.add(tf.keras.layers.Dense(num_classes))
     new_model.add(tf.keras.layers.Softmax(axis=-1))
     return new_model
+
+
+def get_pretrained(path, prev_params):
+    base_model = get_model(
+        num_classes=prev_params[0], # 4
+        filters=prev_params[1], # [32, 64]
+        neurons=prev_params[2], # [512, 128]
+        dropout=prev_params[3], # 0.5
+        kernel_size=prev_params[4],
+        input_shape=prev_params[5],
+        pool_size=prev_params[6]
+    )
+    # Load pretrained weights
+    base_model.load_weights(path).expect_partial()
+    base_model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
+        loss='sparse_categorical_crossentropy',
+        metrics=['accuracy'],
+    )
+    return base_model
 
 
 def get_finetune(path, prev_params, lr=0.0001, num_classes=4):
@@ -144,7 +187,10 @@ def get_finetune(path, prev_params, lr=0.0001, num_classes=4):
         num_classes=prev_params[0], # 4
         filters=prev_params[1], # [32, 64]
         neurons=prev_params[2], # [512, 128]
-        dropout=prev_params[3] # 0.5
+        dropout=prev_params[3], # 0.5
+        kernel_size=prev_params[4],
+        input_shape=prev_params[5],
+        pool_size=prev_params[6]
     )
     # Load pretrained weights
     base_model.load_weights(path).expect_partial()
@@ -205,6 +251,8 @@ def train_model(model, X_train, y_train, X_test, y_test, batch_size,
     Returns:
         1. history (keras.callbacks.History):
             History log of training loss and accuracies.
+            
+    Additional Note: Use .save_weights(f"{name}.ckpt") to replicate this
     """
     callback_lists = []
     
@@ -280,8 +328,8 @@ def plot_logs(history, acc=True, save_path=None):
     plt.savefig(save_path)
     plt.show()
 
-
-def realtime_pred(model, sEMG, num_channels=8, window_length=52):
+tf.get_logger().setLevel('INFO')
+def realtime_pred(model, sEMG, num_channels=8, window_length=32):
     """
     Purpose:
         Perform realtime predictions with the finetuned model.
@@ -304,14 +352,17 @@ def realtime_pred(model, sEMG, num_channels=8, window_length=52):
             The model prediction index
     """
     # Reshape sample to proper sEMG image
-    sEMG = np.array(sEMG).reshape(-1, 1, num_channels, window_length)
+    sEMG = np.array(sEMG).reshape(-1, num_channels, window_length, 1)
     # Run model predictions
-    pred = model.predict(sEMG)
+    pred = model.predict(sEMG, verbose=0)
     # Return location/index of maximum prediction value
     return np.argmax(pred)
 
 
+#########
 # # NOTE: Tensorflow model implementation with sub-class method.
+#########
+
 # class Model(tf.keras.Model):
 #   def __init__(self, num_classes=4, filters=[32, 64], neurons=[512, 128], dropout=0.5):
 #     super(Model, self).__init__()

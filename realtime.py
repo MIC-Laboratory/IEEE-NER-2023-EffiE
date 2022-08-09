@@ -11,13 +11,15 @@ Flow: (running via Async Functions)
     2. Enable bluetooth in setting, and code with automatically pair with armband
     3. Follow instructions to perform gestures for finetuning
     4. Finetune training starts
+        - Optional: save finetuned-model
     5. Real time gesture recognition begins
 
 Note: Should see myo armband in blue lighting if connected.
+
+Downgraded bleak from 0.14.3 to 0.14.0
 """
 
 import asyncio
-import enum
 import json
 import random
 import config
@@ -31,10 +33,12 @@ from bleak import BleakClient, discover
 from dataset import realtime_preprocessing
 from model import get_finetune, realtime_pred
 
+
 warnings.filterwarnings("ignore")
 tf.get_logger().setLevel('INFO')
 
 # UUID's for BLE Connection
+
 CONTROL = "d5060401-a904-deb9-4748-2c7f4a124842"
 EMG0 = "d5060105-a904-deb9-4748-2c7f4a124842"
 EMG1 = "d5060205-a904-deb9-4748-2c7f4a124842"
@@ -48,16 +52,27 @@ realtime_batch_size = 2
 realtime_epochs = 15
 
 # Samples window
-window = 52
+window = 32
+
+# Step Size
+step_size = 16
 
 # Samples to be recored for each gesture
-SAMPLES_PER_GESTURE = 5 * window
+SAMPLES_PER_GESTURE = 15 * window
 
 # List of Gestures to be used for classification
-GESTURES = ["Relaxation", "Thumb Up", "Flexation", "Fist"]
+
+GESTURES = [
+    "Rest", "Fist", "Thumbs Up", "Ok Sign"
+]
+
+delay = 1.0
 
 # Number of sensors Myo Armband contains
 num_sensors = 8
+
+# Path to save finetuned model, set NONE if no export
+finetuned_path = "finetuned/checkpoint.ckpt"
 
 # 2D list to store realtime training data
 sensors = [[] for i in range(num_sensors)]
@@ -68,6 +83,7 @@ selected_device = []
 # Load MEAN and Standard Deviation for Standarization from Ninapro DB5 sEMG signals.
 with open(config.std_mean_path, 'r') as f:
     params = json.load(f)
+
     
 class Connection:
     
@@ -92,6 +108,8 @@ class Connection:
         self.connected_device = None
         self.model = get_finetune(config.save_path, config.prev_params, lr=0.0002, num_classes=len(GESTURES))
         self.current_sample = [[] for i in range(num_sensors)]
+        
+        self.count = 0
 
     """
         Handler for when BLE device is disconnected
@@ -134,8 +152,11 @@ class Connection:
     async def connect(self):
         if self.connected:
             return
-        try:
+        try: 
+            # Stopped Here
+            await asyncio.sleep(0.01, loop=loop)
             await self.client.connect()
+
             self.connected = await self.client.is_connected()
             if self.connected:
                 print(F"Connected to {self.connected_device.name}")
@@ -154,16 +175,16 @@ class Connection:
                     initial_length = len(sensors[0])
                     
                     # Generate slight delay to allow time for user to perform next gesture
-                    await asyncio.sleep(1.0, loop=loop)
+                    await asyncio.sleep(delay, loop=loop)
                     
                     # Notify User Myo Armband is currently collecting signals
                     print("Perform " + gesture + " Now!\n")
                     
                     # Begin collecting training data
-                    await self.client.start_notify(self.EMG0, self.training_handler0)
-                    await self.client.start_notify(self.EMG1, self.training_handler1)
-                    await self.client.start_notify(self.EMG2, self.training_handler2)
-                    await self.client.start_notify(self.EMG3, self.training_handler3)
+                    await self.client.start_notify(self.EMG0, self.training_handler)
+                    await self.client.start_notify(self.EMG1, self.training_handler)
+                    await self.client.start_notify(self.EMG2, self.training_handler)
+                    await self.client.start_notify(self.EMG3, self.training_handler)
                     
                     # Continue until enough data is collected
                     while((len(sensors[0])-initial_length) < SAMPLES_PER_GESTURE):
@@ -181,7 +202,8 @@ class Connection:
                         sensors[channel_idx] = sensor_samples[:(SAMPLES_PER_GESTURE+initial_length)]
                 
                 # Get preprocessed data for training
-                inputs, outputs = realtime_preprocessing(sensors, params_path=config.std_mean_path, num_classes=len(GESTURES))
+                inputs, outputs = realtime_preprocessing(sensors, params_path=config.std_mean_path,
+                                                         num_classes=len(GESTURES), window=window)
                 
                 # Shuffle data before training
                 rand_idx = [idx for idx in range(len(inputs))]
@@ -193,7 +215,10 @@ class Connection:
                 shuffled_outputs = np.array(shuffled_outputs)
 
                 # Convert data to appropriate sEMG images. (For example: [batch_size, 1, 8(sensors/channels), 52(window size)])
-                shuffled_inputs = shuffled_inputs.reshape(-1, 1, 8, window)
+                shuffled_inputs = shuffled_inputs.reshape(-1, 8, window, 1)
+                
+                # Optional cast data to float 32
+                shuffled_inputs = shuffled_inputs.astype(np.float32)
                 
                 # Train model
                 self.model.fit(
@@ -202,16 +227,19 @@ class Connection:
                     batch_size=realtime_batch_size,
                     epochs=realtime_epochs
                 )
+                if finetuned_path != None:
+                    self.model.save_weights(finetuned_path)
                 
                 # Predict gestures until network is disconnected
+                
                 while True:
                     if not self.connected:
                         break
-                    await self.client.start_notify(self.EMG0, self.prediction_handler0)
-                    await self.client.start_notify(self.EMG1, self.prediction_handler1)
-                    await self.client.start_notify(self.EMG2, self.prediction_handler2)
-                    await self.client.start_notify(self.EMG3, self.prediction_handler3)
-                    await asyncio.sleep(3.5, loop=loop)
+                    await self.client.start_notify(self.EMG0, self.prediction_handler)
+                    await self.client.start_notify(self.EMG1, self.prediction_handler)
+                    await self.client.start_notify(self.EMG2, self.prediction_handler)
+                    await self.client.start_notify(self.EMG3, self.prediction_handler)
+                    
                     
             else:
                 print(f"Failed to connect to {self.connected_device.name}")
@@ -244,113 +272,33 @@ class Connection:
 
     # Handler for collecting 2 Sequential Sequence from Myo Armaband (MyoCharacteristics0)
     # Each Sequential Sequence contains 1 sample from each 8 sensors/channels
-    def training_handler0(self, sender: str, data: Any):
+    def training_handler(self, sender: str, data: Any):
         sequence_1, sequence_2 = getFeatures(data, twos_complement=True)
         for channel_idx in range(8):
             sensors[channel_idx].append(sequence_1[channel_idx])
             sensors[channel_idx].append(sequence_2[channel_idx])
-
-    # Handler for collecting 2 Sequential Sequence from Myo Armaband (MyoCharacteristics1)
+  
+  
+    # Handler for collecting 2 Sequential Sequence from Myo Armaband
     # Each Sequential Sequence contains 1 sample from each 8 sensors/channels
-    def training_handler1(self, sender: str, data: Any):
-        sequence_1, sequence_2 = getFeatures(data, twos_complement=True)
-        for channel_idx in range(8):
-            sensors[channel_idx].append(sequence_1[channel_idx])
-            sensors[channel_idx].append(sequence_2[channel_idx])
-        
-    # Handler for collecting 2 Sequential Sequence from Myo Armaband (MyoCharacteristics2)
-    # Each Sequential Sequence contains 1 sample from each 8 sensors/channels
-    def training_handler2(self, sender: str, data: Any):
-        sequence_1, sequence_2 = getFeatures(data, twos_complement=True)
-        for channel_idx in range(8):
-            sensors[channel_idx].append(sequence_1[channel_idx])
-            sensors[channel_idx].append(sequence_2[channel_idx])
-        
-    # Handler for collecting 2 Sequential Sequence from Myo Armaband (MyoCharacteristics3)
-    # Each Sequential Sequence contains 1 sample from each 8 sensors/channels
-    def training_handler3(self, sender: str, data: Any):
-        sequence_1, sequence_2 = getFeatures(data, twos_complement=True)
-        for channel_idx in range(8):
-            sensors[channel_idx].append(sequence_1[channel_idx])
-            sensors[channel_idx].append(sequence_2[channel_idx])
-    
-    
-    # Handler for collecting 2 Sequential Sequence from Myo Armaband (MyoCharacteristics0)
-    # Each Sequential Sequence contains 1 sample from each 8 sensors/channels
-    def prediction_handler0(self, sender: str, data: Any):
-        sequence_1, sequence_2 = getFeatures(data, twos_complement=True)
-        
-        # Truncate self.current_sample if surpasses window size
-        if len(self.current_sample[0]) > (window-1):
-            self.current_sample = [samples[-(window-1):] for samples in self.current_sample]
-            
-        for channel_idx in range(8):
-            self.current_sample[channel_idx].append(sequence_1[channel_idx])
-        
-        # Truncate self.current_sample if surpasses window size
-        if len(self.current_sample[0]) > (window-1):
-            self.current_sample = [samples[-(window-1):] for samples in self.current_sample]
-            
-        for channel_idx in range(8):
-            self.current_sample[channel_idx].append(sequence_2[channel_idx])
-    
-    # Handler for collecting 2 Sequential Sequence from Myo Armaband (MyoCharacteristics1)
-    # Each Sequential Sequence contains 1 sample from each 8 sensors/channels
-    def prediction_handler1(self, sender: str, data: Any):
-        sequence_1, sequence_2 = getFeatures(data, twos_complement=True)
-        
-        # Truncate self.current_sample if surpasses window size
-        if len(self.current_sample[0]) > (window-1):
-            self.current_sample = [samples[-(window-1):] for samples in self.current_sample]
-            
-        for channel_idx in range(8):
-            self.current_sample[channel_idx].append(sequence_1[channel_idx])
-        
-        # Truncate self.current_sample if surpasses window size
-        if len(self.current_sample[0]) > (window-1):
-            self.current_sample = [samples[-(window-1):] for samples in self.current_sample]
-            
-        for channel_idx in range(8):
-            self.current_sample[channel_idx].append(sequence_2[channel_idx])
-
-    # Handler for collecting 2 Sequential Sequence from Myo Armaband (MyoCharacteristics2)
-    # Each Sequential Sequence contains 1 sample from each 8 sensors/channels
-    def prediction_handler2(self, sender: str, data: Any):
-        sequence_1, sequence_2 = getFeatures(data, twos_complement=True)
-        
-        # Truncate self.current_sample if surpasses window size
-        if len(self.current_sample[0]) > (window-1):
-            self.current_sample = [samples[-(window-1):] for samples in self.current_sample]
-            
-        for channel_idx in range(8):
-            self.current_sample[channel_idx].append(sequence_1[channel_idx])
-        
-        # Truncate self.current_sample if surpasses window size
-        if len(self.current_sample[0]) > (window-1):
-            self.current_sample = [samples[-(window-1):] for samples in self.current_sample]
-            
-        for channel_idx in range(8):
-            self.current_sample[channel_idx].append(sequence_2[channel_idx])
-
-    # Handler for collecting 2 Sequential Sequence from Myo Armaband (MyoCharacteristics3)
-    # Each Sequential Sequence contains 1 sample from each 8 sensors/channels
-    def prediction_handler3(self, sender: str, data: Any):
+    async def prediction_handler(self, sender: str, data: Any):
         sequence_1, sequence_2 = getFeatures(data, twos_complement=True)
         for channel_idx in range(8):
             self.current_sample[channel_idx].append(sequence_1[channel_idx])
             self.current_sample[channel_idx].append(sequence_2[channel_idx])
         
-        # If collected enough samples, run predictions
         if len(self.current_sample[0]) >= window:
             # Truncate self.current_samples to window size
-            sEMG = [samples[-window:] for samples in self.current_sample]
-            sEMG = np.array(sEMG)
+            sEMG = np.array([samples[-window:] for samples in self.current_sample])
             
             # Apply Standarization to sEMG data
             for channel_idx in range(len(sEMG)):
                 mean = params[str(channel_idx)][0]
                 std = params[str(channel_idx)][1]
                 sEMG[channel_idx] = (sEMG[channel_idx] - mean) / std
+            
+            # Optional cast input to float 32 (demand of microcontroller)
+            sEMG = sEMG.astype(np.float32)
             
             # Get prediction results
             pred = realtime_pred(
@@ -360,11 +308,12 @@ class Connection:
                 window_length=window
             )
             
+            
             # Update prediction results
             print(GESTURES[pred])
             
-            # Remove first 5 instance from self.current_samples to collect new data. (overlaps)
-            self.current_sample = [samples[-47:] for samples in self.current_sample]
+            # Remove first 8 instance from self.current_samples to collect new data. (overlaps)
+            self.current_sample = [samples[-(window-step_size):] for samples in self.current_sample]
             
 
 def getFeatures(data, twos_complement=True):
@@ -391,12 +340,11 @@ if __name__ == "__main__":
 
     # Create the event loop.
     loop = asyncio.get_event_loop()
-    connection = Connection(loop, EMG0, EMG1, EMG2, EMG3, CONTROL)
+    connection = Connection(loop, EMG0, EMG1, EMG2, EMG3, CONTROL) # EMG3
     try:
         asyncio.ensure_future(connection.manager())
         loop.run_forever()
     except KeyboardInterrupt:
-        print()
         print("User stopped program.")
     finally:
         print("Disconnecting...")

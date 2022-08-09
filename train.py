@@ -43,20 +43,32 @@ if __name__ == "__main__":
     # Convert sEMG data to signal images.
     X_test, y_test = apply_window(test_gestures, window=config.window, step=config.step)
     
-    X_train = X_train.reshape(-1, 1, 8, 52)
-    X_test = X_test.reshape(-1, 1, 8, 52)
+    X_train = X_train.reshape(-1, 8, config.window, 1)
+    X_test = X_test.reshape(-1, 8, config.window, 1)
     
-    # print(X_train.shape)
-    # print(y_train.shape)
-    # print(X_test.shape)
-    # print(y_test.shape)
+    X_train = X_train.astype(np.float32)
+    X_test = X_test.astype(np.float32)
+
+    
+    print("Shape of Inputs:\n")
+    print(X_train.shape)
+    print(y_train.shape)
+    print(X_test.shape)
+    print(y_test.shape)
+    print("Data Type of Inputs\n")
+    print(X_train.dtype)
+    print(X_test.dtype)
+    print("\n")
     
     # Get Tensorflow model
     cnn = get_model(
-        num_classes=config.num_classes, # 4
-        filters=config.filters, # [32, 64]
-        neurons=config.neurons, # [512, 128]
-        dropout=config.dropout # 0.5
+        num_classes=config.num_classes,
+        filters=config.filters,
+        neurons=config.neurons,
+        dropout=config.dropout,
+        kernel_size=config.k_size,
+        input_shape=config.in_shape,
+        pool_size=config.p_kernel
     )
     
     # Start training (And saving weights along training)
@@ -66,18 +78,18 @@ if __name__ == "__main__":
         patience=config.patience, lr=config.inital_lr
     )
     
-    # Visualize accuarcy and loss logs
-    plot_logs(history, acc=True, save_path=config.acc_log)
-    plot_logs(history, acc=False, save_path=config.loss_log)
+    # # Visualize accuarcy and loss logs
+    # plot_logs(history, acc=True, save_path=config.acc_log)
+    # plot_logs(history, acc=False, save_path=config.loss_log)
     
-    # Load pretrained model
-    model = get_model(
-        num_classes=config.num_classes, # 4
-        filters=config.filters, # [32, 64]
-        neurons=config.neurons, # [512, 128]
-        dropout=config.dropout # 0.5
-    )
-    model.load_weights(config.save_path)
+    # # Load pretrained model
+    # model = get_model(
+    #     num_classes=config.num_classes,
+    #     filters=config.filters,
+    #     neurons=config.neurons,
+    #     dropout=config.dropout
+    # )
+    # model.load_weights(config.save_path)
     
     # # NOTE: Optional test for loaded model's performance
     # model.compile(
@@ -88,8 +100,9 @@ if __name__ == "__main__":
     # # See if weights were the same
     # model.evaluate(X_test, y_test)
     
-    # Test with finetune model. (last classifier block removed from base model)
-    finetune_model = get_finetune(config.save_path, config.prev_params)
+    # # Test with finetune model. (last classifier block removed from base model)
+    # finetune_model = get_finetune(config.save_path, config.prev_params, num_classes=config.num_classes)
+    # print("finetune model loaded!")
     
     # NOTE: You can load finetune model like this too.
     # finetune_model = create_finetune(model, num_classes=4)
