@@ -4,6 +4,7 @@ This project aims to achieve efficient sEMG gesture recognition through Convolut
 
 ## Data Collections
 To acquire real-time sEMG signals, we utilized Thalmic Lab's Myo Armband, with BLE connections established via. the python Bleak library. The Myo Armband contains 8 channels of raw sEMG signal sampled at 200 Hz. As for offline training data, we adopted the NinaPro DB5, which also uses Myo Armband for data acquisition. From NinaPro DB5, we utilized 7 gestures from Exercise B: 
+
     1. Rest (0)
     2. Thumb Up (13)
     3. Flexion of ring and little finger, extension of the others (15)
