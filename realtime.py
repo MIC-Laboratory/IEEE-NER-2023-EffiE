@@ -14,9 +14,9 @@ Flow: (running via Async Functions)
         - Optional: save finetuned-model
     5. Real time gesture recognition begins
 
-Note: Should see myo armband in blue lighting if connected.
-
-Downgraded bleak from 0.14.3 to 0.14.0
+Note:
+    1. Should see myo armband in blue lighting if connected.
+    2. Run this on Linux if possible, sometimes Bleak refuses to connect to Myo Armband under Windows environment.
 """
 
 import asyncio

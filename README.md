@@ -15,8 +15,14 @@ To acquire real-time sEMG signals, we utilized Thalmic Lab's Myo Armband, with B
 
 ## Quick Start
 
-### Real Time Gesture Recognition
-Let's perform a simple 4 gesture recognition. Enable bluetooth on your PC and have the Myo Armband attached on your arm. Then, run `realtime.py` and follow guidelines printed on the command prompt, to perform the 4 gestures: "Rest", "Fist", "Thumbs Up", "Ok Sign". After real time sEMG is collected, the pre-trained model from folder "checkpoints" will be finetuned with these samples. Lastly, the model will perform gesture recognition! (Optional: You may also export the fintuned model's weights)
+#### Real Time Gesture Recognition
+Let's perform a simple 4 gesture recognition. Enable bluetooth on your PC and have the Myo Armband attached on your arm. Then, run `realtime.py` and follow guidelines printed on the command prompt, to perform the 4 gestures: "Rest", "Fist", "Thumbs Up", and "Ok Sign". After real time sEMG is collected, the pre-trained model from folder "checkpoints" will be finetuned with these samples. Lastly, this model will perform gesture recognition! (Optional: You may also export the finetuned model's weights by controlling variable "finetuned_path")
+
+#### Advanced:
+If you would like to perform other gestures, you may also finetune with other gestures from NinaPro DB5, simply by controlling the variable "targets" in `config.py`. Then, edit the "GESTURES" in `realtime.py` for realtime gesture recognition upon other gestures.
+
+##### Special NOTE:
+It might not be a good idea to finetune with all 53 gestures from NinaPro DB5 as we have detected Nan loss doing so.
 
 
 1. Folder -> "checkpoints" contains:

@@ -27,7 +27,7 @@ folder_path = "Ninapro_DB5"
 # Ninapro DB5 data collected via 2 Myo armband, controls which armband's 8 sensors to collect
 myo_pref = "elbow"
 
-# Class of gestures for training finetune-base model.
+# Class of gestures for training finetune-base model. Value indexes are based on "visuals/gestures.png"
 targets = [0, 13, 15, 17, 18, 25, 26]
 """
 relax, thumbs up, flexion, open hand, fist, wrist flexion, wrist extension
