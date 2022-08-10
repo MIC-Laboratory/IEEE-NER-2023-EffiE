@@ -1,4 +1,5 @@
 # Desktop Finetuning CNN for sEMG Gesture Recognition
+![Alt text](visuals\pasted_image_0.avif?raw=true "Title")
 ## About
 This project aims to achieve efficient sEMG gesture recognition through Convolutional Neural Network (CNN) and Finetuning. Finetuning is a technique of transfer learning, which, we aim to generalize model learnings from the larger dataset to a more specific, downstream dataset. In this case, we performed offline training with a large recorded sEMG dataset and retrained it with real-time collected data. Additionally, we compiled our model with Tensorflow Lite, optimized for micro-controller applications.
 
