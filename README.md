@@ -25,6 +25,7 @@ If you would like to perform other gestures, you may also finetune with other ge
 It might not be a good idea to pre-train with all 53 gestures from NinaPro DB5 as we have detected Nan loss doing so.
 
 
+## Files Overview
 1. Folder -> "checkpoints" contains:
     - A pretrained finetune-base model's weights.
     - 89% acc over test and train set for 7 Ninapro DB5 gestures:
