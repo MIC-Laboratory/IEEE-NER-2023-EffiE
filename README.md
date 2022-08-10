@@ -1,6 +1,6 @@
 # Desktop Finetuning CNN for sEMG Gesture Recognition
 ## About
-This project aims to achieve efficient sEMG gesture recognition through Convolutional Neural Network (CNN) and Finetuning. Finetuning is a technique of transfer learning, which, we aim to generalize model learnings from the larger dataset to a more specific, downstream dataset. In this case, we performed offline training with a large recorded sEMG dataset and retrained it with real-time collected data.
+This project aims to achieve efficient sEMG gesture recognition through Convolutional Neural Network (CNN) and Finetuning. Finetuning is a technique of transfer learning, which, we aim to generalize model learnings from the larger dataset to a more specific, downstream dataset. In this case, we performed offline training with a large recorded sEMG dataset and retrained it with real-time collected data. Additionally, we compiled our model with Tensorflow Lite, optimized for micro-controller applications.
 
 ## Data Collections
 To acquire real-time sEMG signals, we utilized Thalmic Lab's Myo Armband, with BLE connections established via. the python Bleak library. The Myo Armband contains 8 channels of raw sEMG signal sampled at 200 Hz. As for offline training data, we adopted the NinaPro DB5, which also uses Myo Armband for data acquisition. From NinaPro DB5, we utilized 7 gestures from Exercise B: 
@@ -12,6 +12,12 @@ To acquire real-time sEMG signals, we utilized Thalmic Lab's Myo Armband, with B
     5. Fingers flexed together in fist (18)
     6. Wrist flexion (25)
     7. Wrist Extension (26)
+
+## Quick Start
+
+### Real Time Gesture Recognition
+Let's perform a simple 4 gesture recognition. Enable bluetooth on your PC and have the Myo Armband attached on your arm. Then, run `realtime.py` and follow guidelines printed on the command prompt, to perform the 4 gestures: "Rest", "Fist", "Thumbs Up", "Ok Sign". After real time sEMG is collected, the pre-trained model from folder "checkpoints" will be finetuned with these samples. Lastly, the model will perform gesture recognition! (Optional: You may also export the fintuned model's weights)
+
 
 1. Folder -> "checkpoints" contains:
     - A pretrained finetune-base model's weights.

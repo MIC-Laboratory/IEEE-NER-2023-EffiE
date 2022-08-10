@@ -72,7 +72,8 @@ delay = 1.0
 num_sensors = 8
 
 # Path to save finetuned model, set NONE if no export
-finetuned_path = "finetuned/checkpoint.ckpt"
+finetuned_path = None
+# finetuned_path = "finetuned/checkpoint.ckpt"
 
 # 2D list to store realtime training data
 sensors = [[] for i in range(num_sensors)]
