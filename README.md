@@ -4,7 +4,7 @@
 This project aims to achieve efficient sEMG gesture recognition through Convolutional Neural Network (CNN) and Finetuning. Finetuning is a technique of transfer learning, which, we aim to generalize model learnings from the larger dataset to a more specific, downstream dataset. In this case, we performed offline training with a large recorded sEMG dataset and retrained it with real-time collected data. Additionally, we compiled our model with Tensorflow Lite, optimized for micro-controller applications.
 
 ## Data Collections
-To acquire real-time sEMG signals, we utilized Thalmic Lab's Myo Armband, with BLE connections established via. the python Bleak library. The Myo Armband contains 8 channels of raw sEMG signal sampled at 200 Hz. As for offline training data, we adopted the NinaPro DB5, which also uses Myo Armband for data acquisition. From NinaPro DB5, we utilized 7 gestures from Exercise B: 
+To acquire real-time sEMG signals, we utilized Thalmic Lab's Myo Armband, with BLE connections established via. the python Bleak library. The Myo Armband contains 8 channels of raw sEMG signal sampled at 200 Hz. As for offline training data, we adopted the NinaPro DB5, which also uses Myo Armband for data acquisition. From NinaPro DB5, we utilized 7 gestures collected using the Myo Armband closest to elbow from Exercise B: 
 
     1. Rest (0)
     2. Thumb Up (13)
@@ -24,6 +24,9 @@ If you would like to perform other gestures, you may also finetune with other ge
 
 ###### Special NOTE
 It might not be a good idea to pre-train with all 53 gestures from NinaPro DB5 as we have detected Nan loss doing so.
+
+## Data Preprocessing
+Each raw sEMG value is an 8-bit unsigned number ranging 0 - 255, so we change the sEMG values from unsigned to signed by subtracting the value by 256 if the EMG value is greater than 127. An sEMG array is shaped 1x8, one sEMG sample per channel sampled at 5 ms. Then, we combine 32 sEMG arrays to create an sEMG window (8 × 32). So, each window is sampled at 160 ms with 80 ms overlapping step of 16. Finally, we will have one set of mean and standard deviation for each of the 8 channels calculated from the sEMG samples, obtained from the NinaPro DB5 dataset gestures used during pre-training. And we subtract each EMG value with the local mean divided by the local standard deviation.
 
 
 ## Files Overview
