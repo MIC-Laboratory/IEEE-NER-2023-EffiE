@@ -39,6 +39,9 @@ According to Wikipedia, Convolutional Neural Network is a class of artificial ne
 ###### Special NOTE
 To run realtime gesture recognition, follow the "Real Time Gesture Recognition" and "Advanced" section above.
 
+## Tensorflow Lite (optional)
+Have the finetuned model's weights stored in folder `finetuned`, and run `tensorflow_lite.py`. Then, you will see the optimized TF-Lite model in folder `tensorflow_lite`.
+
 ## Files Overview
 1. Folder -> "checkpoints" contains:
     - A pretrained finetune-base model's weights.
@@ -64,31 +67,31 @@ To run realtime gesture recognition, follow the "Real Time Gesture Recognition" 
     - Demonstration of how Myo Armband was weared when Ninapro DB5 collected their samples. (visuals\armband_position.png)
     - Overview of gestures and data samples: (visuals\Data.png + visuals\gestures.png)
 
-6. File -> "config.py" contains:
+6. `config.py` contains:
     - Configuration Variables and Parameters
 
-7. File -> "dataset.py" contains:
+7. `dataset.py` contains:
     - Utilities for extracting and preprocessing sEMG signals data
 
-8. File -> "model.py" contains:
+8. `model.py` contains:
     - Code for A.I. model implementation and utility functions for it.
 
-8. File -> "realtime.py" contains:
+8. `realtime.py` contains:
     - Main Program for Real-Time system which establishes BLE connection,
         defines GUI, and finetunes realtime samples from a pretrained finetune-base model.
     - OPTIONAL: Export finetuned model's weights
 
-9. File -> "requirements.txt" contains:
+9. `requirements.txt` contains:
     - List of libraries I used through this github repo
     - To replicate my environment, run this under activated conda env: pip install -r requirements.txt
 
-10. File -> "scaling_params.json" contains: (If it exist)
+10. `scaling_params.json` contains: (If it exist)
     - Json with MEAN and Standard Deviation for each sensor Channel.
 
-11. File -> "tensorflow_lite.py" contains:
+11. `tensorflow_lite.py` contains:
     - Code for compiling Tensorflow model to Tensorflow Lite model.
 
-12. File -> "train.py" contains:
+12. `train.py` contains:
     - A sample run of how to perform:
         - Data Preprocessing over Ninapro DataBase5
         - Training finetune-base model (Saving weights along the way)
