@@ -25,8 +25,9 @@ If you would like to perform other gestures, you may also finetune with other ge
 ###### Special NOTE
 It might not be a good idea to pre-train with all 53 gestures from NinaPro DB5 as we have detected Nan loss doing so.
 
+![Alt text](visuals\data_preprocessing.png?raw=true "Title")
 ## Data Preprocessing
-Each raw sEMG value is an 8-bit unsigned number ranging 0 - 255, so we change the sEMG values from unsigned to signed by subtracting the value by 256 if the EMG value is greater than 127. An sEMG array is shaped 1x8, one sEMG sample per channel sampled at 5 ms. Then, we combine 32 sEMG arrays to create an sEMG window (8 × 32). So, each window is sampled at 160 ms with 80 ms overlapping step of 16. Finally, we will have one set of mean and standard deviation for each of the 8 channels calculated from the sEMG samples, obtained from the NinaPro DB5 dataset gestures used during pre-training. And we subtract each EMG value with the local mean divided by the local standard deviation.
+Each raw sEMG value is an 8-bit unsigned number ranging 0 - 255, so we change the sEMG values from unsigned to signed by subtracting the value by 256 if the sEMG value is greater than 127. One sEMG sample per channel sampled at 5 ms makes up an sEMG array shaped 1x8. Then, we combine 32 sEMG arrays to create an sEMG window (8 × 32). So, each window is sampled at 160 ms with 80 ms overlapping step of 16. Finally, we will have one set of mean and standard deviation for each of the 8 channels calculated from the sEMG samples, obtained from the NinaPro DB5 dataset gestures used during pre-training. And we subtract each EMG value with the local mean divided by the local standard deviation.
 
 
 ## Files Overview
