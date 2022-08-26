@@ -1,4 +1,4 @@
-# Desktop Finetuning CNN for sEMG Gesture Recognition
+# Desktop Finetuning CNN for sEMG Pattern Recognition
 ![Fine-Tuning](visuals/finetune.png?raw=true "Fine-Tuning")
 * Figure 1: Convolutional Neural Network and Fine-Tuning
 
