@@ -1,4 +1,4 @@
-# CNN Finetuning for sEMG Pattern Recognition
+# CNN Fine-tuning for sEMG Pattern Recognition
 ![Fine-Tuning](visuals/finetune.png?raw=true "Fine-Tuning")
 * Figure 1: Convolutional Neural Network and Fine-Tuning
 
