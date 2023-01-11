@@ -55,10 +55,10 @@ realtime_epochs = 15
 window = 32
 
 # Step Size
-step_size = 16
+step_size = 10
 
 # Samples to be recored for each gesture
-SAMPLES_PER_GESTURE = 15 * window
+SAMPLES_PER_GESTURE = 10 * window
 
 # List of Gestures to be used for classification
 
@@ -66,14 +66,14 @@ GESTURES = [
     "Rest", "Fist", "Thumbs Up", "Ok Sign"
 ]
 
-delay = 1.0
+delay = 2.0
 
 # Number of sensors Myo Armband contains
 num_sensors = 8
 
 # Path to save finetuned model, set NONE if no export
-finetuned_path = None
-# finetuned_path = "finetuned/checkpoint.ckpt"
+# finetuned_path = None
+finetuned_path = "finetuned/checkpoint.ckpt"
 
 # 2D list to store realtime training data
 sensors = [[] for i in range(num_sensors)]
@@ -204,27 +204,31 @@ class Connection:
                 
                 # Get preprocessed data for training
                 inputs, outputs = realtime_preprocessing(sensors, params_path=config.std_mean_path,
-                                                         num_classes=len(GESTURES), window=window)
+                                                         num_classes=len(GESTURES), window=window, step=step_size)
                 
-                # Shuffle data before training
-                rand_idx = [idx for idx in range(len(inputs))]
-                random.shuffle(rand_idx)
-                shuffled_inputs = [inputs[i] for i in rand_idx]
-                shuffled_outputs = [outputs[i] for i in rand_idx]
+                # Perform cross-validation sampling ([label 0, label 1, label 2, label 3, label 0, label 1, label 2, label 3, ...])
+                sampled_inputs = []
+                sampled_outputs = []
 
-                shuffled_inputs = np.array(shuffled_inputs)
-                shuffled_outputs = np.array(shuffled_outputs)
+                clusters = len(inputs) // len(GESTURES)
+                for idx in range(clusters):
+                    for labels in range(len(GESTURES)):
+                        sampled_inputs.append(inputs[idx+(labels*clusters)])
+                        sampled_outputs.append(outputs[idx+(labels*clusters)])
 
+                sampled_inputs = np.array(sampled_inputs)
+                sampled_outputs = np.array(sampled_outputs)
+                
                 # Convert data to appropriate sEMG images. (For example: [batch_size, 1, 8(sensors/channels), 52(window size)])
-                shuffled_inputs = shuffled_inputs.reshape(-1, 8, window, 1)
+                sampled_inputs = sampled_inputs.reshape(-1, 8, window, 1)
                 
                 # Optional cast data to float 32
-                shuffled_inputs = shuffled_inputs.astype(np.float32)
+                sampled_inputs = sampled_inputs.astype(np.float32)
                 
                 # Train model
                 self.model.fit(
-                    shuffled_inputs,
-                    shuffled_outputs,
+                    sampled_inputs,
+                    sampled_outputs,
                     batch_size=realtime_batch_size,
                     epochs=realtime_epochs
                 )
