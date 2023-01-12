@@ -24,8 +24,8 @@ Let's perform a simple 4 gesture recognition. Enable bluetooth on your PC and ha
 #### Advanced
 If you would like to perform other gestures, you may also finetune with other gestures from NinaPro DB5, simply by controlling the variable "targets" in `config.py`. Then, edit the "GESTURES" in `realtime.py` for realtime gesture recognition upon other gestures.
 
-###### Special NOTE
-It might not be a good idea to pre-train with all 53 gestures from NinaPro DB5 as we have detected Nan loss doing so.
+#### Microcontroller Section
+Please refer to this GitHub repo for the implementation on microcontrollers: https://github.com/MIC-Laboratory/Real-time-Bionic-Arm-Control-via-CNN-on-Sony-Spresense
 
 ![sEMG Data Preprocessing](visuals/data_preprocessing.png?raw=true "sEMG Data Preprocessing")
 * Figure 2: sEMG Data Preprocessing
