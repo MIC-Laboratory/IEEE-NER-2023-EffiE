@@ -40,7 +40,7 @@ save_path = "checkpoints/model.ckpt"
 num_classes = len(targets) # 7
 
 # Number of CNN output filters the model contains.
-filters = [32, 64]
+filters = [48, 96]
 
 # Number of neurons for FFN the model contains.
 neurons = None
