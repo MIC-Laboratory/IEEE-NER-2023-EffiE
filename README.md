@@ -1,4 +1,4 @@
-## [IEEE NER 2023](https://ieeexplore.ieee.org/document/10123741/) EffiE: Efficient Convolutional Neural Network for Real-Time EMG Pattern Recognition System on Edge Devices
+## [IEEE NER 2023 - EffiE: Efficient Convolutional Neural Network for Real-Time EMG Pattern Recognition System on Edge Devices](https://ieeexplore.ieee.org/document/10123741/)
 
 ![Fine-Tuning](visuals/finetune.png?raw=true "Fine-Tuning")
 * Figure 1: Convolutional Neural Network and Fine-Tuning
